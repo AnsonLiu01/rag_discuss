@@ -8,7 +8,7 @@ import yaml
 class LLMDiscuss:
     def __init__(
         self,
-        model_name = 'gemma3:12b'
+        model_name = 'gemma3:4b'
     ):
         self.model_name = model_name
 
