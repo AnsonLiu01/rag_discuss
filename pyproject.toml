@@ -1,0 +1,12 @@
+[project]
+name = "rag-discuss"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "langchain-text-splitters>=1.1.1",
+    "pypdf2>=3.0.1",
+    "streamlit>=1.55.0",
+    "watchdog>=6.0.0",
+]
