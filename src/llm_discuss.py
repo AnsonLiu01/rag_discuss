@@ -52,6 +52,9 @@ class LLMDiscuss:
         :param context_chunks: chunks of text retrieved from the vector store that are relevant to the user's query
         :return: response from the LLM
         """
+        # TODO: caching feature CAG (Cache Augmented Generation), only good when docs don't change much
+        # TODO: experiment with Agentic RAG, slower and costly but higher quality
+        # TODO: multi-modal RAG e.g. images etc
         prompt = self.format_prompt(
             user_query=user_query,
             context_chunks=context_chunks
