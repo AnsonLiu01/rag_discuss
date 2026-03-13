@@ -1,8 +1,10 @@
+import json
 import os
-from typing import List
+from typing import List, Any, Generator
 
 import requests
 import yaml
+from networkx.classes import common_neighbors
 
 
 class LLMDiscuss:
@@ -28,7 +30,7 @@ class LLMDiscuss:
         """
         formatted_context = "\n\n".join(context_chunks)
 
-        prompt_path = os.path.join(os.path.dirname(__file__), 'prompts_input.yml')
+        prompt_path = os.path.join(os.path.dirname(__file__), 'prompts', 'prompts_inputs.yaml')
         with open(prompt_path, 'r') as f:
             prompt_config = yaml.load(f, Loader=yaml.SafeLoader)
 
@@ -41,34 +43,44 @@ class LLMDiscuss:
 
         return prompt
 
-    def chat(
+    def chat_stream(
         self,
         user_query: str,
-        context_chunks: List[str]
-    ) -> str:
+        context_chunks: List[str] = None
+    ) -> Generator[Any, Any, None]:
         """
-        Main method to handle the chat interaction. It formats the prompt and sends it to the LLM.
-        :param user_query: user's query string
-        :param context_chunks: chunks of text retrieved from the vector store that are relevant to the user's query
-        :return: response from the LLM
+        A generator that yields chunks of text from Ollama
         """
         # TODO: caching feature CAG (Cache Augmented Generation), only good when docs don't change much
         # TODO: experiment with Agentic RAG, slower and costly but higher quality
         # TODO: multi-modal RAG e.g. images etc
-        prompt = self.format_prompt(
-            user_query=user_query,
-            context_chunks=context_chunks
-        )
+        if context_chunks:
+            prompt = self.format_prompt(
+                user_query=user_query,
+                context_chunks=context_chunks
+            )
+        else:
+            prompt = self.format_prompt(user_query=user_query, context_chunks=[])
 
         payload = {
             "model": self.model_name,
             "prompt": prompt,
-            "stream": False
+            "stream": True
         }
 
         try:
-            response = requests.post(self.ollama_url, json=payload)
-            response.raise_for_status()  # Checks if Ollama is actually running
-            return response.json().get("response", "Error: Empty response")
+            response = requests.post(self.ollama_url, json=payload, stream=True)
+            response.raise_for_status()
+
+            for line in response.iter_lines():
+                if line:
+                    # Ollama sends back multiple JSON objects, one for each word
+                    chunk = json.loads(line)
+                    content = chunk.get("response", "")
+                    yield content
+
+                    if chunk.get("done"):
+                        break
+
         except requests.exceptions.ConnectionError:
-            return "Error: Is Ollama running? Please start the Ollama app."
+            yield "Error: Is Ollama running? Please start the Ollama app."
