@@ -42,10 +42,16 @@ class IngestionEngine:
         return self.text_splitter.split_text(text)
 
     def process_all_files(self, uploaded_files):
-        """Orchestrates extraction and chunking for multiple files."""
         all_chunks = []
+        all_metadatas = []
+
         for file in uploaded_files:
             raw_text = self.extract_text_from_pdf(file)
             chunks = self.create_chunks(raw_text)
-            all_chunks.extend(chunks)
-        return all_chunks
+
+            for chunk in chunks:
+                all_chunks.append(chunk)
+                # This 'tag' is what the Manager UI looks for
+                all_metadatas.append({"source": file.name})
+
+        return all_chunks, all_metadatas

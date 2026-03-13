@@ -54,6 +54,7 @@ class LLMDiscuss:
         # TODO: caching feature CAG (Cache Augmented Generation), only good when docs don't change much
         # TODO: experiment with Agentic RAG, slower and costly but higher quality
         # TODO: multi-modal RAG e.g. images etc
+        # TODO: specifically where do sources come from, right tab
         if context_chunks:
             prompt = self.format_prompt(
                 user_query=user_query,

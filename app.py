@@ -1,4 +1,6 @@
+import pandas as pd
 import streamlit as st
+
 from src.ingestion import IngestionEngine
 from src.vector_store import VectorStore
 from src.llm_discuss import LLMDiscuss
@@ -116,21 +118,77 @@ with st.sidebar:
 
     if st.button("🚀 Process & Index Files", use_container_width=True):
         if uploaded_files:
-            with st.status("Building local brain...", expanded=True) as status:
-                st.write("Reading PDFs...")
-                chunks = ingestion_engine.process_all_files(uploaded_files)
+            with st.status("Indexing...", expanded=False):
+                # 1. Get chunks and the new metadata tags
+                chunks, metadatas = ingestion_engine.process_all_files(uploaded_files)
 
-                st.write("Creating vector embeddings...")
-                vector_db.add_documents(chunks)
+                # 2. Add BOTH to the vector store
+                vector_db.add_documents(chunks, metadata_list=metadatas)
 
-                st.session_state.chunks = chunks
-                status.update(label="Index Ready!", state="complete", expanded=False)
-            st.success(f"Indexed {len(chunks)} lecture segments.")
+            st.success("Indexed successfully!")
+            st.rerun()  # This forces the list below to update immediately
+
+    st.markdown("---")
+
+    with st.expander("🗄️ Manage Database"):
+        # This line runs every time the expander is toggled or the app reruns
+        current_sources = vector_db.get_all_sources()
+
+        if not current_sources:
+            st.info("Your brain is currently empty. Upload some PDFs to start.")
         else:
-            st.warning("Please upload files first.")
+            st.write(f"**{len(current_sources)} Files in Brain**")
 
+            # Use a selectbox or multiselect to choose what to kill
+            to_delete = st.multiselect("Select files to remove:", current_sources)
 
-# *** UPDATED: Modifying the Chat Loop for Custom Labels ***
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🗑️ Delete Selected", type="primary"):
+                    for source in to_delete:
+                        vector_db.delete_by_source(source)
+                    st.rerun()
+            with col2:
+                if st.button("Delete All"):
+                    vector_db.delete_all()
+                    st.rerun()
+
+    st.markdown("---")
+    with st.expander("Show Raw Vector Store"):
+        raw_data = vector_db.collection.get(include=['documents', 'metadatas'])
+
+        if raw_data['ids']:
+            debug_table = []
+            for i in range(len(raw_data['ids'])):
+                debug_table.append({
+                    "ID": raw_data['ids'][i],
+                    "Source": raw_data['metadatas'][i].get('source', 'Unknown'),
+                    "Content Preview": raw_data['documents'][i]
+                })
+
+            st.dataframe(
+                pd.DataFrame(debug_table, columns=["ID", "Source", "Content Preview"]),
+                column_config={
+                    "Full Content": st.column_config.TextColumn(
+                        "Full Content",
+                        width="large",  # Gives it more horizontal room
+                        help="Full text extracted from the PDF chunk"
+                    ),
+                    "Source": st.column_config.TextColumn("Source", width="small")
+                },
+                use_container_width=True,
+                hide_index=True
+            )
+
+            st.caption(f"Total chunks in brain: {len(raw_data['ids'])}")
+
+            if st.checkbox("View as Text List"):
+                for i, doc in enumerate(raw_data['documents']):
+                    st.text_area(f"Chunk {i + 1} (from {raw_data['metadatas'][i].get('source')})",
+                                 value=doc, height=200)
+        else:
+            st.info("Database is empty.")
+
 for message in st.session_state.messages:
     # Use standard role identifier but apply custom labeling via HTML injection
     role = message["role"]
