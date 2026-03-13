@@ -126,12 +126,11 @@ with st.sidebar:
                 vector_db.add_documents(chunks, metadata_list=metadatas)
 
             st.success("Indexed successfully!")
-            st.rerun()  # This forces the list below to update immediately
+            st.rerun()
 
     st.markdown("---")
 
     with st.expander("🗄️ Manage Database"):
-        # This line runs every time the expander is toggled or the app reruns
         current_sources = vector_db.get_all_sources()
 
         if not current_sources:
@@ -139,7 +138,6 @@ with st.sidebar:
         else:
             st.write(f"**{len(current_sources)} Files in Brain**")
 
-            # Use a selectbox or multiselect to choose what to kill
             to_delete = st.multiselect("Select files to remove:", current_sources)
 
             col1, col2 = st.columns(2)
@@ -171,7 +169,7 @@ with st.sidebar:
                 column_config={
                     "Full Content": st.column_config.TextColumn(
                         "Full Content",
-                        width="large",  # Gives it more horizontal room
+                        width="large",
                         help="Full text extracted from the PDF chunk"
                     ),
                     "Source": st.column_config.TextColumn("Source", width="small")
@@ -190,7 +188,6 @@ with st.sidebar:
             st.info("Database is empty.")
 
 for message in st.session_state.messages:
-    # Use standard role identifier but apply custom labeling via HTML injection
     role = message["role"]
     with st.chat_message(role):
         if role == "user":
@@ -198,7 +195,6 @@ for message in st.session_state.messages:
         else:
             label = "RAG-BOT"
 
-        # Inject modern label with subtle gradient marker
         st.markdown(f'<div class="sender-label"><div class="label-marker"></div>{label}</div>', unsafe_allow_html=True)
         st.markdown(message["content"])
 
@@ -210,20 +206,17 @@ if prompt := st.chat_input("Ask a question about your notes..."):
         st.markdown(prompt)
     st.session_state.messages.append({"role": "user", "content": prompt})
 
-    # Generate Response
     with st.chat_message("assistant"):
         stream, sources = tutor.ask(prompt)
 
-        # Apply label BEFORE the stream
         st.markdown(f'<div class="sender-label"><div class="label-marker"></div>RAG-BOT</div>', unsafe_allow_html=True)
 
         full_response = st.write_stream(stream)
 
-        # Slimmed down source expander
         if sources:
             with st.expander("🔍 Citations"):
                 for i, source in enumerate(sources):
                     st.caption(f"**Snippet {i + 1}**")
-                    st.info(f"{source[:300]}...")
+                    st.info(f"{source}")
 
     st.session_state.messages.append({"role": "assistant", "content": full_response})
