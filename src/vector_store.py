@@ -1,4 +1,4 @@
-from typing import List
+from typing import Dict, List, Union
 import uuid
 
 import chromadb
@@ -95,3 +95,30 @@ class VectorStore:
         """
         self.collection.delete(where={"source": source_name})
         return True
+
+    def analyse_snippet(
+        self,
+        text_snippet: str,
+        n_results: int = 1
+    ) -> Union[Dict[str, str], None]:
+        """
+        Reverse-searches a snippet of text to find its origin in the DB.
+        :return: dict with the full data: ID, Source, and Text.
+        """
+        query_embedding = self.model.encode([text_snippet]).tolist()
+
+        results = self.collection.query(
+            query_embeddings=query_embedding,
+            n_results=n_results,
+            include=['documents', 'metadatas', 'distances']
+        )
+
+        if not results['ids'][0]:
+            return None
+
+        return {
+            "id": results['ids'][0][0],
+            "source": results['metadatas'][0][0].get('source', 'Unknown'),
+            "content": results['documents'][0][0],
+            "distance": results['distances'][0][0]  # Lower is a better match
+        }
