@@ -11,12 +11,16 @@ class VectorStore:
     """
     def __init__(
         self,
+        is_local: bool,
         db_path="./data/vector_store"
     ):
-        # self.client = chromadb.PersistentClient(path=db_path)
+        self.is_local = is_local
+        self.db_path = db_path
+
+        # self.client = chromadb.PersistentClient(path=self.db_path)
         self.client = chromadb.EphemeralClient()
 
-        self.model = SentenceTransformer('BAAI/bge-small-en-v1.5')
+        self.model = SentenceTransformer('BAAI/bge-small-en-v1.5', local_files_only=self.is_local)
 
         self.collection = self.client.get_or_create_collection(name="temp_notes")
 

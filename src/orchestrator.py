@@ -6,11 +6,17 @@ from src.llm_discuss import LLMDiscuss
 
 
 class TutorOrchestrator:
-    def __init__(self):
+    def __init__(
+        self,
+        is_local: bool
+    ):
         """
         Initialises the orchestrator with our existing brain and voice.
+        :param is_local: option to run it all offline
         """
-        self.vector_db = VectorStore()
+        self.is_local = is_local
+
+        self.vector_db = VectorStore(is_local=self.is_local)
         self.llm = LLMDiscuss()
 
     def ask(self, user_query: str):

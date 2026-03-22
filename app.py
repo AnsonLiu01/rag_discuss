@@ -6,6 +6,9 @@ from src.css.ui_custom_css import apply_custom_css
 from src.ingestion import IngestionEngine
 from src.orchestrator import TutorOrchestrator
 
+# SETTINGS
+is_local = True
+
 st.set_page_config(page_title="Anson's RAG-bot", layout="wide")
 
 apply_custom_css()
@@ -14,7 +17,7 @@ apply_custom_css()
 @st.cache_resource
 def init_engines():
     ingestion = IngestionEngine()
-    orchestrator = TutorOrchestrator()
+    orchestrator = TutorOrchestrator(is_local=is_local)
     vector_db = orchestrator.vector_db
     return ingestion, vector_db, orchestrator
 
